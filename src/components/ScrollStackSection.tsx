@@ -100,8 +100,6 @@ const cardBackgroundImages = [
   "/site1/ina2.png",
 ];
 
-const SCROLL_PAUSE_DURATION = 600; // ms to pause scroll when a card snaps into view
-
 const ScrollStackSection: React.FC = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -117,55 +115,33 @@ const ScrollStackSection: React.FC = () => {
   const PROGRESS_RADIUS_R = isMobile ? 36 : PROGRESS_RADIUS;
   const PROGRESS_CIRCUMFERENCE_R = 2 * Math.PI * PROGRESS_RADIUS_R;
 
-  // Track active card for content fade animation
-  const [activeCard, setActiveCard] = useState(0);
-
-  // ── Scroll-pause refs ──────────────────────────────────────────────────
-  const lastActiveIdx = useRef(0);
-  const isScrollLocked = useRef(false);
-  const lockScrollY = useRef(0);
-  const lockTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastActiveIdx = useRef(-1);
 
   const setCardRef = useCallback((el: HTMLDivElement | null, i: number) => {
     cardRefs.current[i] = el;
   }, []);
 
-  // ── Scroll-lock: prevent wheel & touch scroll while paused ───────────
-  useEffect(() => {
-    const preventScroll = (e: Event) => {
-      if (isScrollLocked.current) {
-        e.preventDefault();
-      }
-    };
-
-    // Also hold the scroll position in place during lock
-    const holdPosition = () => {
-      if (isScrollLocked.current) {
-        window.scrollTo({ top: lockScrollY.current });
-      }
-    };
-
-    window.addEventListener("wheel", preventScroll, { passive: false });
-    window.addEventListener("touchmove", preventScroll, { passive: false });
-    window.addEventListener("scroll", holdPosition, { passive: true });
-
-    return () => {
-      window.removeEventListener("wheel", preventScroll);
-      window.removeEventListener("touchmove", preventScroll);
-      window.removeEventListener("scroll", holdPosition);
-      if (lockTimeoutId.current) clearTimeout(lockTimeoutId.current);
-    };
-  }, []);
-
   useEffect(() => {
     // Smooth interpolation target for scroll progress
     let currentSmooth = 0;
-    let targetProgress = 0;
+    let isVisible = false;
+
+    // Only run the loop while the section is near the viewport. Without this
+    // the rAF ran for the life of the page, competing with every other section.
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible && !rafId.current) {
+          rafId.current = requestAnimationFrame(update);
+        }
+      },
+      { rootMargin: "200px" },
+    );
 
     const update = () => {
       const section = sectionRef.current;
-      if (!section) {
-        rafId.current = requestAnimationFrame(update);
+      if (!isVisible || !section) {
+        rafId.current = 0;
         return;
       }
 
@@ -174,7 +150,7 @@ const ScrollStackSection: React.FC = () => {
 
       const scrolled = -rect.top;
       const range = section.offsetHeight - vh;
-      targetProgress = clamp01(scrolled / range);
+      const targetProgress = clamp01(scrolled / range);
 
       // Lerp for smooth interpolation (creates the "slight delay" feel)
       currentSmooth += (targetProgress - currentSmooth) * 0.08;
@@ -199,38 +175,19 @@ const ScrollStackSection: React.FC = () => {
         }
       }
 
-      // ── Scroll-pause: lock scroll briefly when active card changes ──
-      if (activeIdx !== lastActiveIdx.current && !isScrollLocked.current) {
-        // Only trigger pause when inside the section (section is visible)
-        if (rect.top <= 0 && rect.bottom >= vh) {
-          isScrollLocked.current = true;
-          lockScrollY.current = window.scrollY;
-
-          // Clear any existing timeout
-          if (lockTimeoutId.current) clearTimeout(lockTimeoutId.current);
-
-          // Unlock after the pause duration
-          lockTimeoutId.current = setTimeout(() => {
-            isScrollLocked.current = false;
-            lockTimeoutId.current = null;
-          }, SCROLL_PAUSE_DURATION);
-        }
+      // ── Update global progress circle (only when the card changes) ──
+      if (activeIdx !== lastActiveIdx.current) {
         lastActiveIdx.current = activeIdx;
-      }
-
-      // Update React state for active card (for content fade)
-      setActiveCard(activeIdx);
-
-      // ── Update single global progress circle ────────────────────────
-      const circle = progressCircleRef.current;
-      const numSpan = progressNumberRef.current;
-      if (circle) {
-        const fillFraction = (activeIdx + 1) / TOTAL_CARDS;
-        const offset = PROGRESS_CIRCUMFERENCE_R * (1 - fillFraction);
-        circle.style.strokeDashoffset = String(offset);
-      }
-      if (numSpan) {
-        numSpan.textContent = String(activeIdx + 1).padStart(2, "0");
+        const circle = progressCircleRef.current;
+        const numSpan = progressNumberRef.current;
+        if (circle) {
+          const fillFraction = (activeIdx + 1) / TOTAL_CARDS;
+          const offset = PROGRESS_CIRCUMFERENCE_R * (1 - fillFraction);
+          circle.style.strokeDashoffset = String(offset);
+        }
+        if (numSpan) {
+          numSpan.textContent = String(activeIdx + 1).padStart(2, "0");
+        }
       }
 
       // ── Update card transforms ─────────────────────────────────────
@@ -294,13 +251,14 @@ const ScrollStackSection: React.FC = () => {
       rafId.current = requestAnimationFrame(update);
     };
 
-    // Start the continuous animation loop (for smooth lerp)
-    rafId.current = requestAnimationFrame(update);
+    if (sectionRef.current) observer.observe(sectionRef.current);
 
     return () => {
+      observer.disconnect();
       cancelAnimationFrame(rafId.current);
+      rafId.current = 0;
     };
-  }, []);
+  }, [PROGRESS_CIRCUMFERENCE_R]);
 
   return (
     <section
@@ -311,22 +269,6 @@ const ScrollStackSection: React.FC = () => {
         backgroundColor: "#0a0a0a",
       }}
     >
-      {/* Invisible snap-point markers at each card boundary */}
-      {projects.map((_, i) => (
-        <div
-          key={`snap-${i}`}
-          style={{
-            position: "absolute",
-            top: `${i * VH_PER_CARD}vh`,
-            left: 0,
-            width: "1px",
-            height: "1px",
-            scrollSnapAlign: "start",
-            pointerEvents: "none",
-          }}
-        />
-      ))}
-
       <div
         style={{
           position: "sticky",

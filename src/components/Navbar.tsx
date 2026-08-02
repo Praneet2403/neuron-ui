@@ -438,18 +438,10 @@ export default function Navbar() {
     };
   }, []);
 
-  // Fallback: show hamburger when scrolled past 80vh (ensures visibility in project cards)
-  useEffect(() => {
-    const onScroll = () => {
-      const scrollY = window.scrollY;
-      const threshold = window.innerHeight * 0.8;
-      if (scrollY > threshold && !isHidden) {
-        setIsHidden(true);
-      }
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [isHidden]);
+  // Hero drives hide/show via the navbar:hide / navbar:show events above.
+  // A second scroll listener used to live here that only ever set isHidden to
+  // true — it raced Hero's navbar:show, re-subscribed on every toggle, and
+  // added another listener to the scroll path. Hero already covers this range.
 
   return (
     <>

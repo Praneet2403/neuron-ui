@@ -5,20 +5,30 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 
-const images = [
+// Each slide stands for one of the three disciplines the studio sells, so the
+// carousel reads as a statement of services rather than three unlabelled images.
+export const slides = [
   {
     src: "/frames-01/ezgif-frame-001.jpg",
-    alt: "Design 1",
+    alt: "Storefront interface design",
+    discipline: "Commerce",
+    note: "Storefronts that carry a catalogue and convert",
   },
   {
     src: "/images/carousel-2.png",
-    alt: "Design 2",
+    alt: "Product dashboard interface design",
+    discipline: "Product",
+    note: "Dashboards, tools, and the screens teams live in",
   },
   {
     src: "/images/carousel-3.png",
-    alt: "Design 3",
+    alt: "Brand site interface design",
+    discipline: "Brand",
+    note: "Sites that make a name feel like something",
   },
 ];
+
+const images = slides;
 
 function getCarouselConfig(windowWidth: number) {
   if (windowWidth < 480) {
@@ -30,10 +40,44 @@ function getCarouselConfig(windowWidth: number) {
   }
 }
 
-export default function Carousel() {
-  const [currentIndex, setCurrentIndex] = useState(0);
+const arrowStyle: React.CSSProperties = {
+  position: "absolute",
+  zIndex: 60,
+  width: "44px",
+  height: "44px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "50%",
+  backgroundColor: "rgba(255,255,255,0.85)",
+  border: "1px solid rgba(26,26,26,0.12)",
+  cursor: "pointer",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+  transition: "background-color 0.2s ease, border-color 0.2s ease",
+};
+
+export default function Carousel({
+  index,
+  onIndexChange,
+  // "wide" spreads the side cards out on either side; "deck" tucks them behind
+  // the centre card as a fan, so the whole unit fits a half-width column.
+  layout = "wide",
+  showArrows = true,
+}: {
+  index?: number;
+  onIndexChange?: (i: number) => void;
+  layout?: "wide" | "deck";
+  showArrows?: boolean;
+} = {}) {
+  const [internalIndex, setInternalIndex] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [windowWidth, setWindowWidth] = useState(1024);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  // Controlled when the parent passes `index` — it owns the state and renders
+  // its own controls. Uncontrolled otherwise, so existing usage keeps working.
+  const isControlled = index !== undefined;
+  const currentIndex = isControlled ? index : internalIndex;
 
   useEffect(() => {
     const update = () => setWindowWidth(window.innerWidth);
@@ -42,15 +86,33 @@ export default function Carousel() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
+  // The cards bob continuously. That is decorative, so it has to stop entirely
+  // under reduced-motion — the global CSS override can't reach a JS animation.
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReducedMotion(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   const { cardWidth, cardGap, showSide } = getCarouselConfig(windowWidth);
+
+  const isDeck = layout === "deck";
+  const sideX = isDeck
+    ? Math.round(cardWidth * 0.42)
+    : cardWidth + cardGap;
+  const sideScale = isDeck ? 0.84 : 0.82;
+  const sideRotate = isDeck ? 7 : 5;
+  const sideOpacity = showSide ? (isDeck ? 0.7 : 0.85) : 0;
 
   const positionConfigs = {
     left: {
-      x: -(cardWidth + cardGap) * 1,
-      scale: 0.82,
-      rotate: -5,
+      x: -sideX,
+      scale: sideScale,
+      rotate: -sideRotate,
       zIndex: 5,
-      opacity: showSide ? 0.85 : 0,
+      opacity: sideOpacity,
     },
     center: {
       x: 0,
@@ -60,17 +122,21 @@ export default function Carousel() {
       opacity: 1,
     },
     right: {
-      x: (cardWidth + cardGap) * 1,
-      scale: 0.82,
-      rotate: 5,
+      x: sideX,
+      scale: sideScale,
+      rotate: sideRotate,
       zIndex: 5,
-      opacity: showSide ? 0.85 : 0,
+      opacity: sideOpacity,
     },
   };
 
-  const nextSlide = () => setCurrentIndex((p) => (p + 1) % images.length);
+  const goTo = (i: number) => {
+    if (!isControlled) setInternalIndex(i);
+    onIndexChange?.(i);
+  };
+  const nextSlide = () => goTo((currentIndex + 1) % images.length);
   const prevSlide = () =>
-    setCurrentIndex((p) => (p - 1 + images.length) % images.length);
+    goTo((currentIndex - 1 + images.length) % images.length);
 
   const getPosition = (idx: number): "left" | "center" | "right" | "hidden" => {
     const prev = (currentIndex - 1 + images.length) % images.length;
@@ -92,51 +158,33 @@ export default function Carousel() {
         justifyContent: "center",
       }}
     >
-      {/* Left Arrow */}
-      <button
-        onClick={prevSlide}
-        aria-label="Previous"
-        style={{
-          position: "absolute",
-          left: windowWidth < 480 ? "4px" : "20px",
-          zIndex: 60,
-          width: windowWidth < 480 ? "32px" : "40px",
-          height: windowWidth < 480 ? "32px" : "40px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: "50%",
-          backgroundColor: "rgba(255,255,255,0.8)",
-          border: "1px solid #ddd",
-          cursor: "pointer",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-        }}
-      >
-        <ChevronLeft size={18} color="#555" />
-      </button>
+      {/* Arrows — 44px hit area per touch-target minimum, even though the
+          painted circle is smaller. Suppressed when the parent renders its own. */}
+      {showArrows && (
+        <>
+          <button
+            onClick={prevSlide}
+            aria-label="Previous slide"
+            style={{
+              ...arrowStyle,
+              left: `max(0px, calc(50% - ${cardWidth / 2 + 48}px))`,
+            }}
+          >
+            <ChevronLeft size={18} color="#4A443E" />
+          </button>
 
-      {/* Right Arrow */}
-      <button
-        onClick={nextSlide}
-        aria-label="Next"
-        style={{
-          position: "absolute",
-          right: windowWidth < 480 ? "4px" : "20px",
-          zIndex: 60,
-          width: windowWidth < 480 ? "32px" : "40px",
-          height: windowWidth < 480 ? "32px" : "40px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: "50%",
-          backgroundColor: "rgba(255,255,255,0.8)",
-          border: "1px solid #ddd",
-          cursor: "pointer",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-        }}
-      >
-        <ChevronRight size={18} color="#555" />
-      </button>
+          <button
+            onClick={nextSlide}
+            aria-label="Next slide"
+            style={{
+              ...arrowStyle,
+              right: `max(0px, calc(50% - ${cardWidth / 2 + 48}px))`,
+            }}
+          >
+            <ChevronRight size={18} color="#4A443E" />
+          </button>
+        </>
+      )}
 
       {/* Cards */}
       {images.map((img, i) => {
@@ -172,21 +220,29 @@ export default function Carousel() {
             }}
             onClick={() => {
               // Click side cards to select them
-              if (!isCenter) setCurrentIndex(i);
+              if (!isCenter) goTo(i);
             }}
             onMouseEnter={() => setHoveredIndex(i)}
             onMouseLeave={() => setHoveredIndex(null)}
           >
             {/* Float wrapper - continuous bobbing */}
             <motion.div
-              animate={{ y: [0, -floatRange, 0, floatRange * 0.5, 0] }}
-              transition={{
-                duration: floatDuration,
-                repeat: Infinity,
-                repeatType: "loop",
-                ease: "easeInOut",
-                delay: floatDelay,
-              }}
+              animate={
+                reducedMotion
+                  ? { y: 0 }
+                  : { y: [0, -floatRange, 0, floatRange * 0.5, 0] }
+              }
+              transition={
+                reducedMotion
+                  ? { duration: 0 }
+                  : {
+                      duration: floatDuration,
+                      repeat: Infinity,
+                      repeatType: "loop",
+                      ease: "easeInOut",
+                      delay: floatDelay,
+                    }
+              }
             >
               {/* Card */}
               <div
@@ -220,7 +276,12 @@ export default function Carousel() {
                     alt={img.alt}
                     fill
                     style={{ objectFit: "cover" }}
-                    sizes="340px"
+                    // The centre card is the hero's LCP element, so the first
+                    // slide loads eagerly. `sizes` mirrors getCarouselConfig —
+                    // a flat 340px made phones download 1.7x the pixels they
+                    // paint.
+                    priority={i === 0}
+                    sizes="(max-width: 480px) 200px, (max-width: 768px) 260px, 340px"
                   />
 
                   {/* Subtle glow ring on hover for side cards */}

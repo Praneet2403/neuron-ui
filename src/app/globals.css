@@ -11,7 +11,10 @@
 html {
   overflow-x: clip;
   -webkit-text-size-adjust: 100%;
-  scroll-behavior: smooth;
+  /* No `scroll-behavior: smooth` here on purpose. Every section on this page is
+     a sticky-pinned, scroll-driven animation; a global smooth-scroll animates
+     the scroll position out from under those handlers and reads as lag. Nav
+     links pass `behavior: "smooth"` explicitly, so anchor jumps still ease. */
 }
 
 body {
@@ -22,7 +25,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   touch-action: manipulation;
-  scroll-snap-type: y proximity;
+  /* No scroll-snap either: snap points inside a pinned scroll animation fight
+     the animation's own progress, which is what produced the stutter. */
 }
 
 /* Ensure images and media don't overflow on mobile */
@@ -31,4 +35,23 @@ video,
 canvas,
 iframe {
   max-width: 100%;
+}
+
+/* Visible keyboard focus — the inline-styled buttons throughout the page
+   otherwise inherit nothing. */
+:focus-visible {
+  outline: 2px solid #1145a0;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
