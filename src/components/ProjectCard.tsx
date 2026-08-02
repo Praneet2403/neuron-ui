@@ -466,7 +466,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
-        padding: windowWidth < 768 ? "20px 16px 16px" : "36px 40px 32px",
+        // Top padding clears the floating hamburger (Navbar.tsx renders it
+        // fixed at top 20 / right 28, so it lands right on the category label).
+        // The row below it is bottom-anchored, so this only eats slack.
+        padding: windowWidth < 768 ? "56px 16px 16px" : "60px 40px 32px",
         color: "#fff",
         boxShadow:
           "0 4px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)",

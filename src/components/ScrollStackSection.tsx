@@ -17,13 +17,13 @@ function useWindowWidth() {
 
 const projects: ProjectData[] = [
   {
-    title: "Modevelle",
+    title: "Inspectra",
     description:
-      "A demo e-commerce website for women's fashion, featuring product listings, cart functionality, and user authentication. Built using Next.js and the Shopify Storefront API.",
+      "AI code review on every GitHub pull request — it catches bugs, security issues, and bad patterns before merge. One-click fixes, summaries with visual diagrams, and agentic reviews that learn from each team's feedback.",
     hash: "EC4TM4BC50NS6A000",
-    tags: ["NEXTJS", "SHOPIFY STOREFRONT API", "GSAP"],
-    creditLabel: "Content Earth",
-    category: "ECOMMERCE WEBSITE",
+    tags: ["GITHUB APP", "MCP SERVERS", "STATIC ANALYSIS"],
+    siteUrl: "https://inspectra-sepia.vercel.app/",
+    category: "AI CODE REVIEW",
     stackImages: [
       "/site1/ina2.png",
       "/site1/ina4.png",
@@ -34,33 +34,24 @@ const projects: ProjectData[] = [
     ],
   },
   {
-    title: "Aetheria",
+    title: "GAIA",
     description:
-      "An immersive portfolio experience for creative agencies, with smooth page transitions, 3D elements, and a dynamic project showcase. Powered by Three.js and GSAP.",
+      "A conversational assistant for real-time insight, strategy, and automation. Wallet connection puts live DEX and social feeds in the same thread as the research, so reading the market and acting on it stop being separate tools.",
     hash: "7F2BA9DC41E8F3B02",
-    tags: ["THREE.JS", "GSAP", "WEBGL"],
-    creditLabel: "Digital Nomad",
-    category: "PORTFOLIO EXPERIENCE",
+    tags: ["AI AGENT", "WALLET CONNECT", "DEX DATA"],
+    siteUrl: "https://sol-bot-eight.vercel.app/",
+    category: "ONCHAIN AI ASSISTANT",
     stackImages: ["/site2/sol1.png", "/site2/sol2.png", "/site2/sol3.png"],
   },
   {
-    title: "Nocturn",
+    title: "Housiee",
     description:
-      "A real-time analytics dashboard for SaaS products, offering live metrics, custom report builders, and team collaboration features. Built with React and D3.js.",
+      "A local services marketplace for Jaipur and Churu, matching people with vetted providers for PGs and co-living, tiffin, laundry, cleaning, libraries, and co-working. Incubated under iStart Rajasthan, shipping on web, iOS, and Android.",
     hash: "A91CD5E823FA07D44",
-    tags: ["REACT", "D3.JS", "WEBSOCKET"],
-    creditLabel: "Metric Labs",
-    category: "ANALYTICS DASHBOARD",
+    tags: ["NEXT.JS", "IOS & ANDROID", "MULTI-CITY SEARCH"],
+    siteUrl: "https://housiee.com",
+    category: "SERVICE MARKETPLACE",
     stackImages: ["/site3/housie1.png", "/site3/housie2.png"],
-  },
-  {
-    title: "Verdant",
-    description:
-      "A sustainable marketplace connecting local artisans with conscious consumers. Features include carbon tracking, artisan profiles, and curated collections.",
-    hash: "3E8F1C6DA20B94E77",
-    tags: ["NEXT.JS", "STRIPE", "PRISMA"],
-    creditLabel: "Green Studio",
-    category: "SUSTAINABLE MARKETPLACE",
   },
 ];
 
@@ -89,7 +80,6 @@ const cardGradients = [
   "linear-gradient(160deg, rgba(12,26,46,0.75) 0%, rgba(15,31,53,0.7) 40%, rgba(22,45,74,0.65) 100%)",
   "linear-gradient(160deg, rgba(30,10,46,0.75) 0%, rgba(42,16,64,0.7) 40%, rgba(61,24,96,0.65) 100%)",
   "linear-gradient(160deg, rgba(10,46,42,0.75) 0%, rgba(14,61,56,0.7) 40%, rgba(20,90,82,0.65) 100%)",
-  "linear-gradient(160deg, rgba(46,26,10,0.75) 0%, rgba(64,40,16,0.7) 40%, rgba(96,64,24,0.65) 100%)",
 ];
 
 // ── Per-card background images (blurred behind gradient) ──
@@ -97,7 +87,6 @@ const cardBackgroundImages = [
   "/site1/ina2.png",
   "/site2/sol1.png",
   "/site3/housie1.png",
-  "/site1/ina2.png",
 ];
 
 const ScrollStackSection: React.FC = () => {
